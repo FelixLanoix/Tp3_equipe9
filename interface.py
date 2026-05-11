@@ -32,12 +32,11 @@ def ball(x, y, r, couleur):
 balle_blanche = ball(250, HAUTEUR/2, 12, "white")
 pos_initiale = canvas.coords(balle_blanche)
 historique = []
-compteur = 0 
 friction = 0.01
 epsilon = 0.05
 vx = 0
 vy = 0
-
+future = []
 def lancer():
     global vx, vy
 
@@ -50,30 +49,28 @@ def lancer():
     vy = -vitesse_val * np.sin(angle_rad)
 
 def deplacer():
-    global vx, vy, historique, compteur
+    global vx, vy, historique
     
-
     x1, y1, x2, y2 = canvas.coords(balle_blanche)
 
     if x1 <= 80 or x2 >= 820:
         vx = -vx
-    if y1 <= 80  or y2 >= 420:
+    if y1 <= 80 or y2 >= 420:
         vy = -vy
     
     vx = vx * (1 - friction)
     vy = vy * (1 - friction)
 
-    
     if np.linalg.norm([vx, vy]) <= epsilon:
         vx = 0
         vy = 0
 
+    if vx != 0 or vy != 0:
+        historique.append([x1, y1, x2, y2])
+        canvas.move(balle_blanche, vx, vy)
 
-    canvas.move(balle_blanche, vx, vy)
     jeu.after(16, deplacer)
-    historique.append([x1, y1, x2, y2])
-    compteur+= 1
-     
+    
 def reset():
     global vx, vy
 
@@ -82,17 +79,37 @@ def reset():
 
     canvas.coords(balle_blanche, *pos_initiale)
 
+
 def retour_arriere():
-    global vx, vy, historique, compteur
+    global vx, vy, historique
     
-    
-    if compteur > 10:
-        compteur-=10
-        canvas.coords(balle_blanche, *historique[compteur])
-    else:
-        raise Exception ("impossible de revenir en arrière") 
     vx = 0
-    vy = 0 
+    vy = 0
+
+    if len(historique) > 10:
+        for i in range(10):
+            future.append(historique.pop())
+
+        canvas.coords(balle_blanche, *historique[-1])
+    else:
+        print("Impossible de revenir en arrière")
+
+
+def retour_avant():
+    global vx, vy, historique, futur
+
+    vx = 0
+    vy = 0
+
+    if len(future) >= 10:
+
+        for i in range(10):
+            historique.append(future.pop())
+
+        canvas.coords(balle_blanche, *historique[-1])
+
+    else:
+        print("Impossible d'avancer")
 
 
 bouton1 = tk.Button(jeu, text= "lancer",command= lancer)
@@ -103,6 +120,9 @@ bouton2.pack()
 
 bouton3 = tk.Button(jeu, text= "<--", command= retour_arriere)
 bouton3.pack()
+
+bouton4 = tk.Button(jeu, text="-->", command=retour_avant)
+bouton4.pack()
 
 deplacer()
 jeu.mainloop()
