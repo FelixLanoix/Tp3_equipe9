@@ -1,18 +1,18 @@
 {
   "friction": 0.01,
   "rayon": 12,
-
-  "balles": [
+  "restitution": 0.8,
+  "balles":   [
     { "x": 250, "y": 250, "couleur": "white" },
     { "x": 500, "y": 250, "couleur": "red" },
     { "x": 525, "y": 235, "couleur": "blue" },
     { "x": 525, "y": 265, "couleur": "yellow" },
     { "x": 550, "y": 220, "couleur": "orange" },
-    { "x": 550, "y": 250, "couleur": "black" },
+    { "x": 550, "y": 250, "couleur": "purple" },
     { "x": 550, "y": 280, "couleur": "pink" },
     { "x": 575, "y": 205, "couleur": "cyan" },
     { "x": 575, "y": 235, "couleur": "brown" },
-    { "x": 575, "y": 265, "couleur": "purple" },
+    { "x": 575, "y": 265, "couleur": "black" },
     { "x": 575, "y": 295, "couleur": "gray" },
     { "x": 600, "y": 190, "couleur": "magenta" },
     { "x": 600, "y": 220, "couleur": "lime" },

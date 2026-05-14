@@ -3,6 +3,22 @@ import numpy as np
 import json
 from balles import Balle
 
+
+class Fichierjson(Exception):
+    pass
+
+class Collision(Exception):
+    pass
+
+class Friction(Exception):
+    pass
+
+class ZeroBalle(Exception):
+    pass
+
+
+
+
 LARGEUR, HAUTEUR = 900, 500
 
 jeu = tk.Tk()
@@ -13,24 +29,34 @@ canvas.pack()
 
 canvas.create_rectangle(50, 50, 850, 450, fill="#561010", outline="")
 canvas.create_rectangle(80, 80, 820, 420, fill="#268844", outline="")
+try:
+    with open("balles.json", "r") as fichier:
+        data = json.load(fichier)
 
-with open("balles.json", "r") as fichier:
-    data = json.load(fichier)
+except FileNotFoundError:
+    raise Fichierjson("Le fichier balles.json est introuvable")
+
 
 friction = data["friction"]
 rayon = data["rayon"]
 
+if friction < 0 or friction > 1:
+    raise Friction("La friction doit être entre 0 et 1")
+
 liste_balles = []
 
-for i in data["balles"]:
+for info in data["balles"]:
     balle = Balle(
         canvas,
-        i["x"],
-        i["y"],
+        info["x"],
+        info["y"],
         rayon,
-        i["couleur"]
+        info["couleur"]
     )
     liste_balles.append(balle)
+
+if len(liste_balles) == 0:
+    raise ZeroBalle("Il n'y a pas de balle")
 
 balle_blanche = liste_balles[0]
 
@@ -46,89 +72,133 @@ epsilon = 0.05
 vx = 0
 vy = 0
 
-pos_initiale = balle_blanche.coords()
-
+pos_initiale = [balle.coords() for balle in liste_balles]
 
 def lancer():
-    global vx, vy, future
+    global future
 
-    future = []
+    try:
+        future = []
 
-    angle_deg = float(angle.get())
-    vitesse_val = float(vitesse.get())
+        angle_deg = float(angle.get())
+        vitesse_val = float(vitesse.get())
 
-    angle_rad = np.deg2rad(angle_deg)
+        angle_rad = np.deg2rad(angle_deg)
 
-    vx = vitesse_val * np.cos(angle_rad)
-    vy = -vitesse_val * np.sin(angle_rad)
+        balle_blanche.vx = vitesse_val * np.cos(angle_rad)
+        balle_blanche.vy = -vitesse_val * np.sin(angle_rad)
 
+    except:
+        raise ValueError("nombre invalide")
 
 def deplacer():
-    global vx, vy
+    
+    historique.append([balle.coords() for balle in liste_balles])
 
-    x1, y1, x2, y2 = balle_blanche.coords()
+    for balle in liste_balles:
+        balle.vx = balle.vx * (1 - friction)
+        balle.vy = balle.vy * (1 - friction)
 
-    if x1 <= 80 or x2 >= 820:
-        vx = -vx
+        if np.linalg.norm([balle.vx, balle.vy]) <= epsilon:
+            balle.vx = 0
+            balle.vy = 0
 
-    if y1 <= 80 or y2 >= 420:
-        vy = -vy
+    for i in range(len(liste_balles)):
+        for j in range(i + 1, len(liste_balles)):
+            gerer_collision(liste_balles[i], liste_balles[j])
 
-    vx = vx * (1 - friction)
-    vy = vy * (1 - friction)
+    for balle in liste_balles:
+        x1, y1, x2, y2 = balle.coords()
 
-    if np.linalg.norm([vx, vy]) <= epsilon:
-        vx = 0
-        vy = 0
+        if x1 <= 80 or x2 >= 820:
+            balle.vx = -balle.vx
 
-    if vx != 0 or vy != 0:
-        historique.append(balle_blanche.coords())
-        balle_blanche.deplacer(vx, vy)
+        if y1 <= 80 or y2 >= 420:
+            balle.vy = -balle.vy
+
+        balle.deplacer()
 
     jeu.after(16, deplacer)
 
-
 def reset():
-    global vx, vy, historique, future
-
-    vx = 0
-    vy = 0
+    global historique, future
 
     historique = []
     future = []
 
-    balle_blanche.placer(pos_initiale)
-
+    for i in range(len(liste_balles)):
+        liste_balles[i].placer_centre(pos_initiale[i])
+        liste_balles[i].vx = 0
+        liste_balles[i].vy = 0
 
 def retour_arriere():
-    global vx, vy
-
-    vx = 0
-    vy = 0
+    global historique, future
 
     if len(historique) > 10:
         for i in range(10):
             future.append(historique.pop())
 
-        balle_blanche.placer(historique[-1])
+        positions = historique[-1]
+
+        for i in range(len(liste_balles)):
+            liste_balles[i].placer_centre(positions[i])
+            liste_balles[i].vx = 0
+            liste_balles[i].vy = 0
     else:
         print("Impossible de revenir en arrière")
 
-
 def retour_avant():
-    global vx, vy
-
-    vx = 0
-    vy = 0
+    global historique, future
 
     if len(future) >= 10:
         for i in range(10):
             historique.append(future.pop())
 
-        balle_blanche.placer(historique[-1])
+        positions = historique[-1]
+
+        for i in range(len(liste_balles)):
+            liste_balles[i].placer_centre(positions[i])
+            liste_balles[i].vx = 0
+            liste_balles[i].vy = 0
     else:
         print("Impossible d'avancer")
 
+
+def gerer_collision(b1, b2):
+    if rayon <= 0:
+        raise Collision("Le rayon doit être positif")
+
+    p1 = b1.centre()
+    p2 = b2.centre()
+
+    direction = p2 - p1
+    distance = np.linalg.norm(direction)
+
+    if distance == 0:
+        return
+
+    if distance < 0:
+        raise Collision("Distance de la collision invalide")
+
+    if distance <= 2 * rayon:
+        n = direction / distance
+
+        chevauchement = 2 * rayon - distance
+
+        p1 = p1 - (chevauchement / 2) * n
+        p2 = p2 + (chevauchement / 2) * n
+
+        b1.placer_centre(p1)
+        b2.placer_centre(p2)
+
+        v1 = np.array([b1.vx, b1.vy])
+        v2 = np.array([b2.vx, b2.vy])
+
+        v_rel = np.dot(v1 - v2, n)
+
+        if v_rel > 0:
+            b1.vx, b1.vy = v1 - v_rel * n
+            b2.vx, b2.vy = v2 + v_rel * n
 
 bouton1 = tk.Button(jeu, text="lancer", command=lancer)
 bouton1.pack()

@@ -1,10 +1,10 @@
+import numpy as np
+
+
 class Balle:
     def __init__(self, canvas, x, y, rayon, couleur):
         self.canvas = canvas
-        self.x = x
-        self.y = y
         self.rayon = rayon
-        self.couleur = couleur
         self.vx = 0
         self.vy = 0
 
@@ -18,8 +18,18 @@ class Balle:
     def coords(self):
         return self.canvas.coords(self.id)
 
-    def deplacer(self, vx, vy):
-        self.canvas.move(self.id, vx, vy)
+    def centre(self):
+        x1, y1, x2, y2 = self.coords()
+        return np.array([(x1 + x2) / 2, (y1 + y2) / 2])
 
-    def placer(self, coords):
-        self.canvas.coords(self.id, *coords)
+    def deplacer(self):
+        self.canvas.move(self.id, self.vx, self.vy)
+
+    def placer_centre(self, p):
+        self.canvas.coords(
+            self.id,
+            p[0] - self.rayon,
+            p[1] - self.rayon,
+            p[0] + self.rayon,
+            p[1] + self.rayon
+        )
