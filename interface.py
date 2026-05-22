@@ -60,11 +60,19 @@ if len(liste_balles) == 0:
 
 balle_blanche = liste_balles[0]
 
+
+titre_angle = tk.Label(text= "Angle")
+titre_angle.pack()
+
 angle = tk.Spinbox(jeu, from_=0, to=360, width=15)
 angle.pack()
 
+titre_vitesse = tk.Label(text= "Vitesse")
+titre_vitesse.pack()
+
 vitesse = tk.Entry(jeu, width=15)
 vitesse.pack()
+
 
 historique = []
 future = []
